@@ -11,36 +11,36 @@
 
 // This will determine who is playing at the table
 // Change this to insert your name and playing function
-const PLAYERS = {
+var PLAYERS = {
     "alwaysHit": alwaysHit,
     "alwaysStand": alwaysStand,
     "HitUntil17": hitUntil17,
 };
 
 // The number of hands to play
-const NUMBER_OF_HANDS = 1000;
+var NUMBER_OF_HANDS = 10000;
 
-const NUMBER_OF_DECKS = 5; // Configure this if you wish
-const SHUFFLE_THRESHOLD = 52; // the number of cards required to play the next hand without shuffling new cards
+var NUMBER_OF_DECKS = 5; // Configure this if you wish
+var SHUFFLE_THRESHOLD = 52; // the number of cards required to play the next hand without shuffling new cards
 
-// Constants for actions
-const STAND = 0;
-const HIT = 1;
+// varants for actions
+var STAND = 0;
+var HIT = 1;
 
-// Constants for different cards
-const ACE = 1; // remember that Ace can either be 11 or 1!
-const TWO = 2;
-const THREE = 3;
-const FOUR = 4;
-const FIVE = 5;
-const SIX = 6;
-const SEVEN = 7;
-const EIGHT = 8;
-const NINE = 9;
-const TEN = 10;
-const JACK = 11;
-const QUEEN = 12;
-const KING = 13;
+// varants for different cards
+var ACE = 1; // remember that Ace can either be 11 or 1!
+var TWO = 2;
+var THREE = 3;
+var FOUR = 4;
+var FIVE = 5;
+var SIX = 6;
+var SEVEN = 7;
+var EIGHT = 8;
+var NINE = 9;
+var TEN = 10;
+var JACK = 11;
+var QUEEN = 12;
+var KING = 13;
 
 // Creates a deck of cards, as an array
 function deckOfCards() {
@@ -138,7 +138,7 @@ function setupGame(players, deckCount) {
 // Setup and play many, many games!
 var game = setupGame(PLAYERS, NUMBER_OF_DECKS);
 // Do the basic run through of the games
-for (var i=0; i<NUMBER_OF_HANDS; i++) {
+for (var hand=0; hand<NUMBER_OF_HANDS; hand++) {
     // Check if shuffle needed
     if (dealerShouldShuffle(game.deckCards.length)) {
         // reset the cards
@@ -147,10 +147,10 @@ for (var i=0; i<NUMBER_OF_HANDS; i++) {
     }
 
     // Deal out cards, two to each player
-    for (var player of game.players) {
+    for (var i=0; i<game.players.length; i++) {
         var card1 = game.deckCards.pop();
         var card2 = game.deckCards.pop();
-        player.cards = [card1, card2];
+        game.players[i].cards = [card1, card2];
         // Add to played cards list
         game.playedCards.push(card1, card2);
     }
@@ -161,17 +161,17 @@ for (var i=0; i<NUMBER_OF_HANDS; i++) {
     
     // Go through each player, asking for HITs and STANDs
     // TODO: PASS COPIES OF EACH PIECE OF DATA!
-    for (var player of game.players) {
+    for (var i=0; i<game.players.length; i++) {
         while (true) {
-            var decision = player.algorithm(game.playedCards, player.cards, game.dealerShowingCard);
+            var decision = game.players[i].algorithm(game.playedCards, game.players[i].cards, game.dealerShowingCard);
             // If they HIT, deal a card and see if they bust
             if (decision === HIT) {
                 // Deal a card from the deck
-                player.cards.push(game.deckCards.pop());
+                game.players[i].cards.push(game.deckCards.pop());
                 // Check for a bust
-                if (minHandValue(player.cards) > 21) {
+                if (minHandValue(game.players[i].cards) > 21) {
                     // "take away" their cards
-                    player.cards = null;
+                    game.players[i].cards = null;
                     // stop asking them what to do, they lost
                     break;
                 }
@@ -180,7 +180,7 @@ for (var i=0; i<NUMBER_OF_HANDS; i++) {
                 break;
             } else {
                 // we don't understand their decision... just make them lose!
-                player.cards = null
+                game.players[i].cards = null
             }
         }
     }
@@ -194,14 +194,14 @@ for (var i=0; i<NUMBER_OF_HANDS; i++) {
         if (
             (dealerBestHandValue >=18 && dealerBestHandValue <= 21) // 18 or better
             ||
-            (dealerBestHandValue === 17 && Math.min(...dealerHandValues) === 17) // hard 17
+            (dealerBestHandValue === 17 && minArray(dealerHandValues) === 17) // hard 17
         ) {
             break; // dealer must STAND!
         } else {
             // dealer _must_ HIT
             dealerHand.push(game.deckCards.pop());
             // Check if dealer busts
-            if (Math.min(...allHandValues(dealerHand)) > 21) {
+            if (minArray(allHandValues(dealerHand)) > 21) {
                 dealerHand = null // indicate a bust for the dealer
                 break; // we are done!
             }
@@ -209,20 +209,21 @@ for (var i=0; i<NUMBER_OF_HANDS; i++) {
     }
 
     // Assign wins and losses
-    for (var player of game.players) {
+    for (var i=0; i<game.players.length; i++) {
         // if the player busted, they lose
-        if (player.cards == null) {
+        if (game.players[i].cards == null) {
+            game.players[i].score--;
             continue;
-        } else if (player.cards !== null && dealerHand === null) {
+        } else if (game.players[i].cards != null && dealerHand == null) {
             // player wins because dealer busted and they didnt
-            player.score++;
+            game.players[i].score++;
         } else {
             // check scores
             // note that draws, or "pushes", do not receive a change in score
-            if (bestHandValue(player.cards) > bestHandValue(dealerHand)) {
-                player.score++
-            } else if (bestHandValue(player.cards) < bestHandValue(dealerHand)) {
-                player.score--;
+            if (bestHandValue(game.players[i].cards) > bestHandValue(dealerHand)) {
+                game.players[i].score++
+            } else if (bestHandValue(game.players[i].cards) < bestHandValue(dealerHand)) {
+                game.players[i].score--;
             }
         }
     }
@@ -230,7 +231,7 @@ for (var i=0; i<NUMBER_OF_HANDS; i++) {
 
 // Now let's report the scores
 console.log("FINAL SCORES:")
-for (var i in game.players) {
+for (var i=0; i<game.players.length; i++) {
     console.log(game.players[i].name + ":\t\t"+game.players[i].score);
 }
 
@@ -240,27 +241,41 @@ for (var i in game.players) {
 *
 */
 
+function minArray(arr) {
+  var min = arr[0];
+  for (var i=1; i<arr.length; i++) {
+    if (arr[i]<min) {
+      min = arr[i];
+    }
+  }
+  return min;
+}
+
 // Returns every value a hand could have, considering Aces as both 1 and 11
 function allHandValues(cards) {
     var values = [0];
     for (var i=0; i<cards.length; i++) {
-        // Either the cards constant value, or 10, if its J, Q, or K
+        // Either the cards varant value, or 10, if its J, Q, or K
         var newValues = []; // use a secondary array if we are working with an Ace to avoid infinite looping below
         for (var j=0; j<values.length; j++) {
-            values[j] += cards[i];
+            values[j] += Math.min(cards[i], 10);
             // If it's an Ace, add a new possible value where it's treated as 11 instead of 1
             if (cards[i] === ACE) {
-                newValues.push(values[j]+11);
+                newValues.push(values[j]+10);
             }
         }
-        values.concat(newValues);
+        values = values.concat(newValues);
     }
     // remove duplicates using a map
     var valueMap = {};
     for (var i=0; i<values.length; i++) {
-        valueMap[values[i]] = true;
+        valueMap[values[i]] = values[i];
     }
     var sortedValues = Object.keys(valueMap);
+    // the values are strings; parse them into integers
+    for (var i=0; i<sortedValues.length; i++) {
+        sortedValues[i] = parseInt(sortedValues[i], 10);
+    }
     sortedValues.sort(function(a,b){return a-b;});
     return sortedValues;
 }
@@ -292,7 +307,7 @@ function minHandValue(cards) {
 function maxHandValue(cards) {
     var sum = 0;
     for (var i=0; i<cards.length; i++) {
-        // Either the cards constant value, or 10, if its J, Q, or K
+        // Either the cards varant value, or 10, if its J, Q, or K
         sum += Math.min(cards[i], 10);
         // Add an extra 10 for an ace (11 == 1 + 10)
         if (cards[i] === 1) {
